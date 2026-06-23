@@ -178,7 +178,17 @@ else:
     if 'live_pie'    not in st.session_state: st.session_state.live_pie    = [65, 25, 10]
     if 'avatar_bytes' not in st.session_state: st.session_state.avatar_bytes = None
 
-    # Avatar
+    # Avatar (persistente em disco)
+    import os, hashlib
+    avatar_dir = os.path.join(os.path.dirname(__file__), "avatars")
+    os.makedirs(avatar_dir, exist_ok=True)
+    avatar_key = hashlib.md5(P['name'].encode()).hexdigest()
+    avatar_path = os.path.join(avatar_dir, f"{avatar_key}.png")
+
+    # Carrega do disco se existir e session_state estiver vazio
+    if st.session_state.avatar_bytes is None and os.path.exists(avatar_path):
+        st.session_state.avatar_bytes = open(avatar_path, "rb").read()
+
     col_i1, col_i2, col_i3 = st.sidebar.columns([1,2,1])
     with col_i2:
         avatar_src = st.session_state.avatar_bytes if st.session_state.avatar_bytes else "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
@@ -188,7 +198,11 @@ else:
         if st.session_state.avatar_bytes is None:
             up = st.file_uploader("", type=['png','jpg','jpeg'], label_visibility="collapsed")
             if up:
-                st.session_state.avatar_bytes = up.getvalue()
+                img_bytes = up.getvalue()
+                st.session_state.avatar_bytes = img_bytes
+                # Salva no disco para persistir entre sessões
+                with open(avatar_path, "wb") as f:
+                    f.write(img_bytes)
                 st.rerun()
 
     st.sidebar.markdown(f"<h3 style='text-align:center;margin-top:-10px'>{P['name']}</h3>", unsafe_allow_html=True)
